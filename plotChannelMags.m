@@ -20,6 +20,4 @@ for i=1:10
     xlabel('f [MHz]');
     ylabel('|C(f)| [dB]');
     title(['Attenuation Length ',num2str(cz(i),4)]);
-    % HOLD ON, CHANGE M, run again and then do hold off.
-%     legend('16 QAM')
 end
