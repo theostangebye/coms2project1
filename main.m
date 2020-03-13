@@ -9,7 +9,7 @@ numSamplesPerSymbol = 1;    % Oversampling factor
 rng default                 % Use default random number generator
 
 % Constants defined by theo - should be changed?
-P = 10e-6; % power is 10uWatts
+P = 10e-3; % power is 10mWatts
 No = 10e-14; % noise floor
 
 sym_rates = f*10e6;              % Datarates from 0 to 1.1 Gb/s.  f given by clarkson dataset
@@ -17,9 +17,9 @@ bers = sym_rates;                % allowcate space for BER results (by copying s
 
 SIM_CASE = 1; % SIM_CASE [1..4] Corelates to section 1..4 on project instructions.
 
-for i=1:size(sym_rates,2)        % Iterate over the 2nd dimension of sym_rates.
+for i=1:size(sym_rates,1)        % Iterate over the 2nd dimension of sym_rates.
     
-    Ts = 1/sym_rates(i);         % symbol time
+    Ts = 1./sym_rates(i);         % symbol time
     snr_bit_db = 10*log10((P*Ts)/(k*No));   % snr per bit
     snr = snr_bit_db + 10*log10(k) - 10*log10(numSamplesPerSymbol); % converts bitwise ebno to symbolwise ebno
     
