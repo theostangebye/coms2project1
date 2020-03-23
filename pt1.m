@@ -9,7 +9,7 @@ numSamplesPerSymbol = 1;    % Oversampling factor
 rng default                 % Use default random number generator
 
 % Constants defined by theo - should be changed?
-P = 10e-3; % power is 10mWatts
+P = 10e-4; % power is 10mWatts
 No = 10e-14; % noise floor
 
 sym_rates = f*1e6;              % Datarates from 0 to 1.1 Gb/s.  f given by clarkson dataset
