@@ -43,9 +43,20 @@ for nn=1:size(cz,2) % iterate over each of 10 turbidity levels
     % DISTORTING FILTER DESIGN
     f2 = f;     % copy freqs 
     f2(1) = 0;  % force first frequency to be 0, DC
-    dstrt_chnl = fdesign.arbmagnphase('N,F,H',50,f2./(max(f2)),Cf(:,nn)'); % estimate channel
-    
+    dstrt_chnl = fdesign.arbmagnphase('N,F,H',200,f2./(max(f2)),Cf(:,nn)); % estimate channel
     dstrt_fltr = design(dstrt_chnl);           % construct filter to emulate estimated channel
+    
+    % full channel eq
+    eq_mag = 1./abs(Cf(:,nn));
+    eq_phase = - angle(Cf(:,nn));
+    
+    eq_real = eq_mag .* cos(eq_phase);
+    eq_imag = eq_mag .* sin(eq_phase);
+    
+    eq_coef = complex(eq_real, eq_imag);
+    
+    equalizer = fdesign.arbmagnphase('N,F,H',200,f2./(max(f2)),1./Cf(:,nn)); % estimate channel
+    eq_fltr = design(equalizer);
     
     for i=1:length(snrs)        % Iterate over the 2nd dimension of sym_rates.
 
@@ -54,7 +65,9 @@ for nn=1:size(cz,2) % iterate over each of 10 turbidity levels
         receivedSignal = filter(dstrt_fltr, dataMod);   
         receivedSignal = awgn(receivedSignal, snr,'measured');      % send data through awgn channel
         
+        
         receivedSignal = rxfilter(receivedSignal);
+        receivedSignal = filter(eq_fltr, receivedSignal);
         
         dataSymbolsOut = qamdemod(receivedSignal,M,'bin');  % detect symbols
         dataOutMatrix = de2bi(dataSymbolsOut,k);            % symbols to binary
@@ -84,4 +97,6 @@ end
     figure
     fvtool(dstrt_fltr);                                                  % Plot Mag of channel
     fvtool(dstrt_fltr,'Analysis','phase');                               % Plot phase  channel
+    fvtool(eq_fltr);                                                  % Plot Mag of channel
+    fvtool(eq_fltr,'Analysis','phase');                               % Plot phase  channel
     
