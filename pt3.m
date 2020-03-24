@@ -3,6 +3,8 @@ clear
 hold off
 close all                   % Close all current figure
 load("comms432proj1.mat");  % Load channel data
+f2 = f;     % copy freqs 
+f2(1) = 0;  % force first frequency to be 0, DC
 M = 16;                     % Size of signal constellation
 k = log2(M);                % Number of bits per symbol
 n = 100000;                 % Number of bits to process
