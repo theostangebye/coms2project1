@@ -15,7 +15,7 @@ styles = {'-.b*','--ko',':rs','-.g*','--ro',':ms','-.m*','--co',':bs','-.k*'};
 P = 10e-4; % power is 10mWatts
 No = 10e-14; % noise floor
 
-% sym_rates = f*1e6;              % Datarates from 0 to 1.1 Gb/s.  f given by clarkson dataset
+% sym_rates = f*1e6;        % Datarates from 0 to 1.1 Gb/s.  f given by clarkson dataset
 snrs = 1:30;
 bers = snrs;                % allowcate space for BER results (by copying sym_rates).
 losses = cz;
@@ -27,6 +27,14 @@ dataMod = qammod(dataSymbolsIn,M,'bin');            % Binary coding, phase offse
 
 % 10 non-distortingband limited channels... (see handout)
 for nn=1:size(cz,2) % iterate over each of 10 turbidity levels
+    
+    % DISTORTING FILTER DESIGN
+    dstrt_chnl = fdesign.arbmagnphase('N,F,H',100,f2./(max(f2)),Cf(:,nn)'); % estimate channel
+    dstrt_fltr = design(dstrt_chnl);          % construct filter to emulate estimated channel
+    fvtool(dstrt_fltr);                                                 % Plot Mag of channel
+    fvtool(dstrt_fltr,'Analysis','phase');                              % Plot phase  channel
+    % distort data like this: 
+    % filter(dstrt_fltr, dataMod)
     
     for i=1:length(snrs)        % Iterate over the 2nd dimension of sym_rates.
 
@@ -44,6 +52,7 @@ for nn=1:size(cz,2) % iterate over each of 10 turbidity levels
         bers(i) = ber;                                      % save BER value
         snrs(i) = snr; 
     end
+    
     plot(snrs,bers,styles{nn})
     hold on
 end
@@ -58,4 +67,4 @@ end
     ylabel('BER');
     hold on
     title('BER vs. SNR for Different Band-limited Channel Losses.');
-    legend(split(num2str(cz)))
+    legend(split(num2str(losses)))

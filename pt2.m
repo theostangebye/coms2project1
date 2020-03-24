@@ -34,7 +34,7 @@ for nn=1:size(cz,2) % iterate over each of 10 turbidity levels
         lossDB = 10*log10(loss);
         losses(nn) = lossDB;
 
-        snr = snrs(i)
+        snr = snrs(i);
         
         receivedSignal = awgn(dataMod,snr + lossDB,'measured');      % send data through awgn channel
         dataSymbolsOut = qamdemod(receivedSignal,M,'bin');  % detect symbols
@@ -44,8 +44,6 @@ for nn=1:size(cz,2) % iterate over each of 10 turbidity levels
         bers(i) = ber;                                      % save BER value
         snrs(i) = snr; 
     end
-    nn
-    styles(nn)
     plot(snrs,bers,styles{nn})
     hold on
 end
@@ -60,6 +58,4 @@ end
     ylabel('BER');
     hold on
     title('BER vs. SNR for Different Band-limited Channel Losses.');
-    legend(split(num2str(losses)))
-
-    % HOLD ON, CHANGE M, run again and then do hold off.
+    legend(split(num2str(cz)))
