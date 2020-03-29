@@ -1,7 +1,7 @@
 % Theo and Stephen
 clear
-hold off
-close all                   % Close all current figure
+hold off  % PLOT ON 1 Remove Comment
+close all                   % Close all current figure % PLOT ON 1 Remove Comment
 load("comms432proj1.mat");  % Load channel data
 M = 16;                     % Size of signal constellation
 k = log2(M);                % Number of bits per symbol
@@ -58,4 +58,5 @@ end
     ylabel('BER');
     hold on
     title('BER vs. SNR for Different Band-limited Channel Losses.');
-    legend(split(num2str(cz)))
+%     legend([{'Ideal QAM'};split(num2str(cz))])  % Remove for Pt2 only.
+    legend([split(num2str(cz))]) % PLOT ON 1 Remove 

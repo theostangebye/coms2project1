@@ -50,4 +50,4 @@ ylabel('BER');
 hold on
 title('BER vs. SNR');
 % HOLD ON, CHANGE M, run again and then do hold off.
-legend('16 QAM')
+% legend('16 QAM')

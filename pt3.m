@@ -3,8 +3,6 @@ clear
 hold off
 close all                   % Close all current figure
 load("comms432proj1.mat");  % Load channel data
-f2 = f;     % copy freqs 
-f2(1) = 0;  % force first frequency to be 0, DC
 M = 16;                     % Size of signal constellation
 k = log2(M);                % Number of bits per symbol
 n = 100000;                 % Number of bits to process
@@ -25,6 +23,8 @@ snrs = 1:30;
 bers = snrs;                % allowcate space for BER results (by copying sym_rates).
 losses = cz;
 
+
+% TODO: REPLACE THIS CODE WITH CODE FROM HERE: https://www.mathworks.com/help/comm/gs/use-pulse-shaping-on-16-qam-signal.html
 % Pulse Shaping Filters:
 txfilter = comm.RaisedCosineTransmitFilter('RolloffFactor',rolloff, ...
     'FilterSpanInSymbols',span,'OutputSamplesPerSymbol',nSamp);
@@ -39,21 +39,27 @@ dataMod = qammod(dataSymbolsIn,M,'bin');            % Binary coding, phase offse
 
 dataMod = txfilter(dataMod);
 
+% Prep frequency data for fft.
+f = f'.*1e6;                 % Convert from GHz to Hz.
+dif = f(2)-f(1);            % distance between measurements.
+f2 = [0:dif:f(1)-dif,f];    % create data for beginning of vector.
+
 % 10 non-distortingband limited channels... (see handout)
 for nn=1:size(cz,2) % iterate over each of 10 turbidity levels
-    
-    % DISTORTING FILTER DESIGN
-    f2 = f;     % copy freqs 
-    f2(1) = 0;  % force first frequency to be 0, DC
-    dstrt_chnl = fdesign.arbmagnphase('N,F,H',50,f2./(max(f2)),Cf(:,nn)); % estimate channel
-    
-    dstrt_fltr = design(dstrt_chnl);           % construct filter to emulate estimated channel
-    
+        
+    ch = Cf(:,nn)';    % Copy channel data for this sim run.
+    ch = ch * (1/mean(abs(ch)));
+     z_pad = zeros(1,size(f2,2) - size(ch,2));
+     ch = [z_pad,ch]; 
+     channel_t = ifft(ch, 'symmetric');
+
+
     for i=1:length(snrs)        % Iterate over the 2nd dimension of sym_rates.
 
         snr = snrs(i);
         
-        receivedSignal = filter(dstrt_fltr, dataMod);   
+        receivedSignal = filter(channel_t,1,dataMod);
+        
         receivedSignal = awgn(receivedSignal, snr,'measured');      % send data through awgn channel
         
         receivedSignal = rxfilter(receivedSignal);
@@ -63,11 +69,12 @@ for nn=1:size(cz,2) % iterate over each of 10 turbidity levels
         dataOut = dataOutMatrix(:);                         % Return data in column vector
         [numErrors,ber] = biterr(dataIn,dataOut);           % compute BER
         bers(i) = ber;                                      % save BER value
-        snrs(i) = snr; 
+        snrs(i) = snr;                                      
     end
     
-    plot(snrs,bers,styles{nn})
-    hold on
+     plot(snrs,bers,styles{nn})
+     hold on
+
 end
 
     % make a nice plot below:
@@ -83,7 +90,8 @@ end
     legend(split(num2str(cz)))
     
     hold off;
-    figure
-    fvtool(dstrt_fltr);                                                  % Plot Mag of channel
-    fvtool(dstrt_fltr,'Analysis','phase');                               % Plot phase  channel
+%     figure
+    
+    fvtool(channel_t,'Analysis','freq');                                                  % Plot Mag of channel
+    fvtool(channel_t,'Analysis','phase','Analysis','freq');                               % Plot phase  channel
     

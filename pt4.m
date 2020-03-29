@@ -43,7 +43,7 @@ for nn=1:size(cz,2) % iterate over each of 10 turbidity levels
     % DISTORTING FILTER DESIGN
     f2 = f;     % copy freqs 
     f2(1) = 0;  % force first frequency to be 0, DC
-    dstrt_chnl = fdesign.arbmagnphase('N,F,H',200,f2./(max(f2)),Cf(:,nn)); % estimate channel
+    dstrt_chnl = fdesign.arbmagnphase('N,F,H',15,f2./(max(f2)),Cf(:,nn)); % estimate channel
     dstrt_fltr = design(dstrt_chnl);           % construct filter to emulate estimated channel
     
     % full channel eq
@@ -55,7 +55,7 @@ for nn=1:size(cz,2) % iterate over each of 10 turbidity levels
     
     eq_coef = complex(eq_real, eq_imag);
     
-    equalizer = fdesign.arbmagnphase('N,F,H',200,f2./(max(f2)),1./Cf(:,nn)); % estimate channel
+    equalizer = fdesign.arbmagnphase('N,F,H',15,f2./(max(f2)),1./Cf(:,nn)); % estimate channel
     eq_fltr = design(equalizer);
     
     for i=1:length(snrs)        % Iterate over the 2nd dimension of sym_rates.
