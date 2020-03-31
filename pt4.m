@@ -6,11 +6,11 @@ load("comms432proj1.mat");  % Load channel data
 M = 16;                     % Size of signal constellation
 k = log2(M);                % Number of bits per symbol
 n = 100000;                 % Number of bits to process
-numSamplesPerSymbol = 1;    % Oversampling factor
-span = 10;
-rolloff = 0.25;
-nSamp = 1;
 rng default                 % Use default random number generator
+
+sps = 4; % Number of samples per symbol (oversampling factor)
+filtlen = 10; % Filter length in symbols
+rolloff = 0.25; % Filter rolloff factor
 
 styles = {'-.b*','--ko',':rs','-.g*','--ro',':ms','-.m*','--co',':bs','-.k*'};
 
@@ -23,51 +23,41 @@ snrs = 1:30;
 bers = snrs;                % allowcate space for BER results (by copying sym_rates).
 losses = cz;
 
-% Pulse Shaping Filters:
-txfilter = comm.RaisedCosineTransmitFilter('RolloffFactor',rolloff, ...
-    'FilterSpanInSymbols',span,'OutputSamplesPerSymbol',nSamp);
-rxfilter = comm.RaisedCosineReceiveFilter('RolloffFactor',rolloff, ...
-    'FilterSpanInSymbols',span,'InputSamplesPerSymbol',nSamp, ...
-    'DecimationFactor',nSamp);
+Cf = Cf .* 1/mean(mean(abs(Cf)));
+
+rrcFilter = rcosdesign(rolloff,filtlen,sps);
 
 dataIn = randi([0 1],n,1);  % Generate vector of random binary data
 dataInMatrix = reshape(dataIn,length(dataIn)/k,k);  % Reshape data into binary k-tuples, k = log2(M)
 dataSymbolsIn = bi2de(dataInMatrix);                % Convert to integers
 dataMod = qammod(dataSymbolsIn,M,'bin');            % Binary coding, phase offset = 0
 
-dataMod = txfilter(dataMod);
+dataMod = upfirdn(dataMod,rrcFilter,sps,1);
 
 % 10 non-distortingband limited channels... (see handout)
 for nn=1:size(cz,2) % iterate over each of 10 turbidity levels
     
-    % DISTORTING FILTER DESIGN
-    f2 = f;     % copy freqs 
-    f2(1) = 0;  % force first frequency to be 0, DC
-    dstrt_chnl = fdesign.arbmagnphase('N,F,H',15,f2./(max(f2)),Cf(:,nn)); % estimate channel
-    dstrt_fltr = design(dstrt_chnl);           % construct filter to emulate estimated channel
+    % Determine loss of channel
+    m = size(Cf,1); % number of data points per channel
+    Chnl = Cf(:,nn); % channel data
+    rrc_mag = freqz(rrcFilter,1.1e9,1024); % get mag and phase of rrc filter. m points.
+    sum = 0;
+    for j=1:m
+        sum = sum + abs(rrc_mag(j))/(abs(Chnl(j)).^2);
+    end
+    sum = sum * 2; % account for negative frequencies.
+    loss_rrc = 10*log10(sum);
     
-    % full channel eq
-    eq_mag = 1./abs(Cf(:,nn));
-    eq_phase = - angle(Cf(:,nn));
-    
-    eq_real = eq_mag .* cos(eq_phase);
-    eq_imag = eq_mag .* sin(eq_phase);
-    
-    eq_coef = complex(eq_real, eq_imag);
-    
-    equalizer = fdesign.arbmagnphase('N,F,H',15,f2./(max(f2)),1./Cf(:,nn)); % estimate channel
-    eq_fltr = design(equalizer);
+    losses(nn) = loss_rrc;
     
     for i=1:length(snrs)        % Iterate over the 2nd dimension of sym_rates.
 
         snr = snrs(i);
+         
+        receivedSignal = awgn(dataMod, snr-loss_rrc,'measured');      % send data through awgn channel
         
-        receivedSignal = filter(dstrt_fltr, dataMod);   
-        receivedSignal = awgn(receivedSignal, snr,'measured');      % send data through awgn channel
-        
-        
-        receivedSignal = rxfilter(receivedSignal);
-        receivedSignal = filter(eq_fltr, receivedSignal);
+        receivedSignal = upfirdn(receivedSignal,rrcFilter,1,sps); % Downsample and filter
+        receivedSignal = receivedSignal(filtlen + 1:end - filtlen); % Account for delay
         
         dataSymbolsOut = qamdemod(receivedSignal,M,'bin');  % detect symbols
         dataOutMatrix = de2bi(dataSymbolsOut,k);            % symbols to binary
@@ -94,9 +84,9 @@ end
     legend(split(num2str(cz)))
     
     hold off;
-    figure
-    fvtool(dstrt_fltr);                                                  % Plot Mag of channel
-    fvtool(dstrt_fltr,'Analysis','phase');                               % Plot phase  channel
-    fvtool(eq_fltr);                                                  % Plot Mag of channel
-    fvtool(eq_fltr,'Analysis','phase');                               % Plot phase  channel
-    
+%     figure
+%     fvtool(dstrt_fltr);                                                  % Plot Mag of channel
+%     fvtool(dstrt_fltr,'Analysis','phase');                               % Plot phase  channel
+%     fvtool(eq_fltr);                                                  % Plot Mag of channel
+%     fvtool(eq_fltr,'Analysis','phase');                               % Plot phase  channel
+%     
